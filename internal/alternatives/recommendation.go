@@ -74,6 +74,9 @@ func bestMetrics(a *AccessResult) *AccessMetrics {
 }
 func Summarize(out *Result, p odsay.Path) {
 	summary := &JourneySummary{DataOrigin: "odsay_recorded_response", ReferenceOnly: true, DurationMinutes: p.Info.TotalTime, Access: bestMetrics(out.OriginalAccess), Congestion: out.Profile}
+	if out.DataOrigin != "" {
+		summary.DataOrigin = out.DataOrigin
+	}
 	transit := 0
 	for _, l := range p.Legs {
 		if l.TrafficType == 3 && l.Minutes != nil {

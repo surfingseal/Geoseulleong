@@ -45,11 +45,14 @@ func run() error {
 	if e := cloudPolicy(os.Getenv); e != nil {
 		return e
 	}
-	budgetFor, closeBudget, err := deploymentBudgets(root)
+	budgetFor, selectionStore, closeBudget, err := deploymentBudgets(root)
 	if err != nil {
 		return err
 	}
 	defer closeBudget()
+	if os.Getenv("DYNO") != "" && selectionStore == nil {
+		return errors.New("Heroku requires PostgreSQL journey selections")
+	}
 	var budgetOptions []budgetFactory
 	if budgetFor != nil {
 		budgetOptions = append(budgetOptions, budgetFor)
@@ -81,6 +84,9 @@ func run() error {
 		return e
 	}
 	selections := odsay.NewSelections()
+	if selectionStore != nil {
+		selections = odsay.NewPersistentSelections(selectionStore)
+	}
 	journeys := &odsay.Service{Selections: selections, BoardingWeights: &weights, Searcher: searcher, Reader: repository.NewJourneyReferences(pool), Boarding: boardingService}
 
 	alternativeService := &alternatives.Service{Selections: selections, Source: repository.NewAlternativesSource(pool, os.Getenv("ALTERNATIVE_BOARDING_FILES")), Identity: repository.NewJourneyReferences(pool)}

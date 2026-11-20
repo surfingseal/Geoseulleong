@@ -6,6 +6,7 @@ import (
 	"geoseulleong/internal/database"
 	"geoseulleong/internal/gbis"
 	"geoseulleong/internal/odsay"
+	"geoseulleong/internal/repository"
 	"geoseulleong/internal/requestbudget"
 	"os"
 	"strconv"
@@ -14,16 +15,21 @@ import (
 
 type budgetFactory = func(string) func(context.Context) error
 
-// Disabled deployments never open a writable budget connection. No migrations
+// The existing writable budget pool also stores short-lived selections. No migrations
 // or zero-counter seeds are performed at startup.
-func deploymentBudgets(ctx context.Context) (budgetFactory, func(), error) {
+func deploymentBudgets(ctx context.Context) (budgetFactory, odsay.SelectionStore, func(), error) {
 	noop := func() {}
 	if os.Getenv("API_BUDGET_BACKEND") != "postgres" {
-		return nil, noop, nil
+		return nil, nil, noop, nil
 	}
 	p, e := database.OpenBudget(ctx)
 	if e != nil {
-		return nil, noop, e
+		return nil, nil, noop, e
+	}
+	selections, e := repository.NewJourneySelections(ctx, p)
+	if e != nil {
+		p.Close()
+		return nil, nil, noop, errors.New("journey selection database migration required")
 	}
 	store := requestbudget.Store{Pool: p}
 	factory := func(provider string) func(context.Context) error {
@@ -60,5 +66,5 @@ func deploymentBudgets(ctx context.Context) (budgetFactory, func(), error) {
 			return odsay.ErrState
 		}
 	}
-	return factory, p.Close, nil
+	return factory, selections, p.Close, nil
 }

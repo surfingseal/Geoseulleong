@@ -75,7 +75,9 @@ func alternativeRoutes(mux *http.ServeMux, a AlternativeReader) {
 		defer cancel()
 		out, e := a.Search(ctx, q)
 		if e != nil {
-			if errors.Is(e, alternatives.ErrSearchExpired) {
+			if errors.Is(e, odsay.ErrSelectionStore) {
+				failure(w, 503, "journey_selection_store_unavailable", "검색 선택 정보를 읽을 수 없습니다. 잠시 후 다시 시도해 주세요.")
+			} else if errors.Is(e, alternatives.ErrSearchExpired) {
 				failure(w, 410, "journey_selection_expired", "검색 결과가 만료되었습니다. 경로를 다시 조회해 주세요.")
 			} else if errors.Is(e, alternatives.ErrInput) {
 				failure(w, 400, "invalid_alternative_query", "검색 결과의 광역버스 구간 인덱스를 확인해 주세요.")

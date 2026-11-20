@@ -51,6 +51,8 @@ func journeyRoutes(mux *http.ServeMux, reader JourneyReader) {
 				failure(w, 422, "routing_mode_unavailable", "선택한 제공자는 이 이동수단을 지원하지 않습니다.")
 			case errors.Is(e, odsay.ErrTimeout), errors.Is(e, context.DeadlineExceeded):
 				failure(w, 504, "routing_timeout", "경로 조회 시간이 초과됐습니다. 자동 재시도하지 않습니다.")
+			case errors.Is(e, odsay.ErrSelectionStore):
+				failure(w, 503, "journey_selection_store_unavailable", "검색 결과를 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.")
 			case errors.Is(e, odsay.ErrState):
 				failure(w, 503, "routing_budget_state_unavailable", "경로 호출 예산을 확인할 수 없어 요청을 중단했습니다.")
 			case errors.Is(e, odsay.ErrDisabled):

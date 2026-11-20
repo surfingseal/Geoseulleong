@@ -8,7 +8,8 @@ import (
 )
 
 // OpenAuth is explicit and separate from the always-read-only transport pool.
-// No fallback to DATABASE_URL, no schema changes and no writes during startup.
+// Local connections require AUTH_DATABASE_URL. Heroku reuses its rotated DATABASE_URL.
+// No schema changes or auth data writes occur during startup.
 func OpenAuth(ctx context.Context) (*pgxpool.Pool, error) {
 	raw := os.Getenv("AUTH_DATABASE_URL")
 	if raw == "" && os.Getenv("DYNO") != "" {

@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var ErrSelectionStore = errors.New("journey selection storage unavailable")
+
 var ErrDisabled = errors.New("ODsay live requests disabled pending approval")
 var ErrProvider = errors.New("ODsay provider error")
 var ErrSchema = errors.New("ODsay response invalid or unsupported")
@@ -346,9 +348,9 @@ func (s *Service) Candidates(ctx context.Context, q Query) (Candidates, error) {
 		} else if timed, ok := s.Searcher.(interface{ ReceivedAt(Query) time.Time }); ok {
 			captured = timed.ReceivedAt(q)
 		}
-		id, expires, err := s.Selections.Save(raw, q, origin, captured)
+		id, expires, err := s.Selections.SaveContext(ctx, raw, q, origin, captured)
 		if err != nil {
-			return out, ErrState
+			return out, ErrSelectionStore
 		}
 		out.SearchID = id
 		out.SearchExpiresAt = &expires

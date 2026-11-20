@@ -137,7 +137,10 @@ func (s *Service) Search(ctx context.Context, q Request) (Result, error) {
 	}
 	selected := *s
 	if q.SearchID != "" {
-		snapshot, ok := s.Selections.Get(q.SearchID)
+		snapshot, ok, err := s.Selections.GetContext(ctx, q.SearchID)
+		if err != nil {
+			return Result{}, err
+		}
 		if !ok {
 			return Result{}, ErrSearchExpired
 		}
@@ -223,6 +226,7 @@ func (s *Service) searchSelected(ctx context.Context, q Request) (Result, error)
 		EnrichFeasibility(ctx, &out, data, origin, lanes[0], leg, prefix, s.RecordedAt, s.AccessPlanner, s.ReachProvider, s.Clock)
 	}
 	if q.Recommend {
+		out.DataOrigin = s.DataOrigin
 		Summarize(&out, p)
 		out.Policy["max_odsay_segment_queries"] = min(3, len(out.Candidates))
 		out.Policy["max_odsay_total_queries"] = 2 * min(3, len(out.Candidates))

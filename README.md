@@ -50,3 +50,12 @@ go build ./...
 ```
 
 이 저장소는 배포용 서버 패키지를 포함합니다. 개발 PC의 연구 CLI·실측 원본·실험 fixture·DB 백업·상태 파일은 업로드하지 않습니다. 전체 기존 테스트는 원본 개발 프로젝트에서 수행하며, 이 저장소에는 원본 파일 없이 실행 가능한 배포 회귀 테스트를 포함합니다. `.env`, `results/`, `data/`, `var/`, `backups/`는 Git과 slug에서 제외합니다.
+
+
+## Heroku 경로 검색 연결 (2026-11-21)
+
+`/api/v1/journeys` 응답의 `search_id`, 선택한 `path_index`, 광역버스 `leg_index`를 `/api/v1/journeys/boarding-recommendations`에 전달합니다. 서버가 보관한 원본 인덱스를 사용하며 Android에서 새 인덱스를 붙이지 않습니다. 선택 정보는 신규 `008_journey_selections.sql` 테이블에 저장되어 10분 유효기간 내 dyno 재시작·다른 인스턴스에서도 재사용합니다. 기존 예산용 writable 풀을 공유하며 교통 데이터는 읽기 전용입니다. 만료는 410, 선택 저장소 장애는 503으로 구분합니다. 만료된 행은 조회에서 제외되며 물리적 보관·정리 정책은 별도 운영 항목입니다.
+
+현재 Live 활성화 승인과 추가 누적 예산이 없으므로 `JOURNEY_SEARCH_MODE=disabled`, ODsay/Kakao/GBIS 승인 플래그 false를 유지합니다. 공식 ID 검증이 가능한 ODsay를 활성화하려면 별도 승인 후 `JOURNEY_PROVIDER=odsay`, `JOURNEY_SEARCH_MODE=live`, `ODSAY_LIVE_APPROVED=true`, 남은 일일·누적 예산, 접근 IP를 설정합니다. `API_BUDGET_BACKEND=postgres`와 기존 ledger를 유지해야 하며 카운터 초기화는 금지합니다. 이때 ODsay 접근/광역버스 구간 조회는 같은 클라이언트·예산·캐시를 공유합니다. Kakao도 기존 provider 설정을 지원하지만 공식 정류장 ID가 없으면 대체 승차 확정 매핑을 거부합니다. GBIS는 별도의 승인·예산으로만 활성화합니다.
+
+Swagger `/swagger/`의 경로 검색과 대체 경로 요청·응답 예시를 사용하세요. `reference_date`/`service_date`는 과거 통계 참고일이며 현재 GBIS 값과 구분합니다. 전체 시간은 확보한 구간만 합산하고 누락 시 null, ETA·좌석 미제공도 unknown/null로 남깁니다.

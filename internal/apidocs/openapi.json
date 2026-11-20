@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Geoseulleong 인증 API",
-    "version": "1.0.0",
-    "description": "개발용 인증 API. 예제 비밀번호는 합성 값입니다. 기존 경로/혼잡도 API는 변경하지 않습니다. 토큰 회전 직후 이전 Access Token도 폐기됩니다."
+    "title": "Geoseulleong API",
+    "version": "1.1.0",
+    "description": "경로 검색 → search_id/path_index/leg_index → 대체 승차 경로 조회. Live는 별도 승인·예산·제공자 접근 조건 충족 후 활성화합니다. 저장 응답 예시는 오프라인 기록이며 현재 경로/ETA가 아닙니다. 선택 ID는 생성 후 10분 동안 PostgreSQL에 보존되어 재시작 후에도 조회됩니다. CGST는 과거 참고 지표이며 탑승 성공 확률이 아닙니다."
   },
   "servers": [
     {
@@ -429,18 +429,19 @@
           "대체 승차 경로"
         ],
         "summary": "낮은 CGST 후보·접근 경로·실시간 도착 가능성 비교",
-        "description": "기존 journeys의 search_id 및 provider path_index/leg_index로 실제 검색 결과 또는 기록 경로를 선택합니다. 추가 원래 경로 검색 없이 후보 최대3개의 접근·GBIS·CGST를 연결합니다. 미확인 값은 null/unknown입니다. 누락 구간은 기존 승인·예산 내 ODsay 클라이언트로 조회해 일치하는 버스 구간 시간만 합산합니다. 추가 구간 최대3회, 접근 포함 검색 상한6회.",
+        "description": "기존 journeys의 search_id 및 provider path_index/leg_index로 실제 검색 결과 또는 기록 경로를 선택합니다. 추가 원래 경로 검색 없이 후보 최대3개의 접근·GBIS·CGST를 연결합니다. 미확인 값은 null/unknown입니다. 누락 구간은 기존 승인·예산 내 ODsay 클라이언트로 조회해 일치하는 버스 구간 시간만 합산합니다. 추가 구간 최대3회, 접근 포함 검색 상한6회. 먼저 /api/v1/journeys의 실제 search_id와 선택한 광역버스 path_index/leg_index를 사용하세요. PostgreSQL 선택 정보는 10분 내 서버 재시작 후에도 유지되며, 만료 시 다시 검색해야 합니다. 공식 ID가 없는 Kakao 구간은 이름만으로 연결하지 않고 422 boarding_identity_unverified를 반환합니다. 미제공 시간/ETA/좌석은 null 또는 unknown이며 0으로 대체하지 않습니다.",
         "security": [],
         "parameters": [
           {
             "name": "search_id",
             "in": "query",
             "required": false,
-            "description": "journeys 응답의 32자리 ID. 실제 검색 모드 필수. 기록 모드는 기존 생략 호출 유지.",
+            "description": "검색 응답의 실제 ID로 교체. 예시 ID는 작동하지 않음.",
             "schema": {
               "type": "string",
               "pattern": "^[0-9a-f]{32}$"
-            }
+            },
+            "example": "0123456789abcdef0123456789abcdef"
           },
           {
             "name": "path_index",
@@ -450,7 +451,8 @@
             "schema": {
               "type": "integer",
               "minimum": 0
-            }
+            },
+            "example": 0
           },
           {
             "name": "leg_index",
@@ -460,7 +462,8 @@
             "schema": {
               "type": "integer",
               "minimum": 0
-            }
+            },
+            "example": 1
           },
           {
             "name": "service_date",
@@ -471,7 +474,8 @@
               "type": "string",
               "format": "date",
               "example": "2026-10-02"
-            }
+            },
+            "example": "2026-10-01"
           },
           {
             "name": "tzon",
@@ -482,7 +486,8 @@
               "type": "string",
               "pattern": "^[0-9]{2}$",
               "example": "08"
-            }
+            },
+            "example": "07"
           },
           {
             "name": "window",
@@ -737,6 +742,225 @@
                       }
                     }
                   ]
+                },
+                "examples": {
+                  "offline_combined": {
+                    "summary": "실제 기록 구간 + 합성 접근 fixture 조합. 현재 실시간 결과가 아니며 3개 중 첫 후보 발췌.",
+                    "value": {
+                      "data_origin": "odsay_recorded_response",
+                      "route_id": 1,
+                      "original_profile": {
+                        "status": "available",
+                        "mean_cgst": 75.4,
+                        "p90_cgst": 93,
+                        "observation_count": 5,
+                        "numeric_count": 5,
+                        "low_sample": true
+                      },
+                      "candidates": [
+                        {
+                          "visit": {
+                            "visit_id": 1,
+                            "sequence": 1,
+                            "turn_sequence": 31,
+                            "gbis_stop_id": "203000023",
+                            "original_name": "삼성전자중앙문",
+                            "via_name": false,
+                            "boarding_allowed": null,
+                            "point": {
+                              "lon": 127.0486667,
+                              "lat": 37.2593833
+                            },
+                            "crs_status": "hypothesis_validated",
+                            "mapping_count": 1,
+                            "stcis_stop_id": "4160311",
+                            "stcis_sequence": 0
+                          },
+                          "profile": {
+                            "status": "available",
+                            "mean_cgst": 10.125,
+                            "p90_cgst": 16,
+                            "observation_count": 8,
+                            "numeric_count": 8,
+                            "low_sample": true
+                          },
+                          "express_segment": {
+                            "status": "available",
+                            "gbis_route_id": "234001317",
+                            "boarding_gbis_stop_id": "203000023",
+                            "alighting_gbis_stop_id": "101000006",
+                            "duration_minutes": 70,
+                            "data_origin": "odsay_recorded_response"
+                          },
+                          "itinerary": {
+                            "realtime_reason_codes": [
+                              "arrival_unavailable"
+                            ],
+                            "includes_express_wait": false,
+                            "origin": {
+                              "lon": 127.0519833,
+                              "lat": 37.2779667
+                            },
+                            "destination": {
+                              "lon": 126.9727333,
+                              "lat": 37.55515
+                            },
+                            "status": "complete",
+                            "reason_codes": [],
+                            "phases": [
+                              {
+                                "kind": "access",
+                                "status": "known",
+                                "duration_minutes": 10,
+                                "known_minutes": 10,
+                                "reason_codes": [],
+                                "legs": [
+                                  {
+                                    "phase": "access",
+                                    "mode": "bus",
+                                    "from": {
+                                      "provider_station_id": "origin-fixture",
+                                      "provider_code": 2,
+                                      "name": "소화초등학교",
+                                      "gbis_stop_id": "203000294",
+                                      "point": {
+                                        "lon": 127.0519833,
+                                        "lat": 37.2779667
+                                      }
+                                    },
+                                    "to": {
+                                      "name": "삼성전자중앙문",
+                                      "gbis_stop_id": "203000023",
+                                      "visit_id": 1,
+                                      "point": {
+                                        "lon": 127.0486667,
+                                        "lat": 37.2593833
+                                      }
+                                    },
+                                    "duration_minutes": 10,
+                                    "route_name": "11",
+                                    "route_id": "ordinary-fixture",
+                                    "same_vehicle_continuation": false,
+                                    "status": "known",
+                                    "data_origin": "synthetic_access_fixture"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "express",
+                                "status": "known",
+                                "duration_minutes": 70,
+                                "known_minutes": 70,
+                                "reason_codes": [],
+                                "legs": [
+                                  {
+                                    "phase": "express",
+                                    "mode": "bus",
+                                    "from": {
+                                      "name": "삼성전자중앙문",
+                                      "gbis_stop_id": "203000023",
+                                      "visit_id": 1,
+                                      "point": {
+                                        "lon": 127.0486667,
+                                        "lat": 37.2593833
+                                      }
+                                    },
+                                    "to": {
+                                      "name": "서울역버스환승센터(6번승강장)(중)",
+                                      "gbis_stop_id": "101000006",
+                                      "visit_id": 31,
+                                      "point": {
+                                        "lon": 126.9727333,
+                                        "lat": 37.55515
+                                      }
+                                    },
+                                    "duration_minutes": 70,
+                                    "route_name": "M5121",
+                                    "route_id": "234001317",
+                                    "same_vehicle_continuation": false,
+                                    "status": "known",
+                                    "data_origin": "odsay_recorded_response"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "onward",
+                                "status": "known",
+                                "duration_minutes": 1,
+                                "known_minutes": 1,
+                                "reason_codes": [],
+                                "legs": [
+                                  {
+                                    "phase": "onward",
+                                    "mode": "walk",
+                                    "from": {
+                                      "name": "서울역버스환승센터(6번승강장)(중)",
+                                      "gbis_stop_id": "101000006",
+                                      "visit_id": 31,
+                                      "point": {
+                                        "lon": 126.9727333,
+                                        "lat": 37.55515
+                                      }
+                                    },
+                                    "to": {
+                                      "name": "목적지",
+                                      "point": {
+                                        "lon": 126.9727333,
+                                        "lat": 37.55515
+                                      }
+                                    },
+                                    "duration_minutes": 1,
+                                    "same_vehicle_continuation": false,
+                                    "status": "known",
+                                    "data_origin": "odsay_recorded_response"
+                                  }
+                                ]
+                              }
+                            ],
+                            "total_journey_minutes": 81,
+                            "known_minutes": 81,
+                            "walking_minutes": 1,
+                            "transfer_count": 1,
+                            "time_basis": "provider_segment_sum_excludes_unprovided_wait",
+                            "express_wait_minutes": null,
+                            "reachability": "unknown",
+                            "boarding_status": "unknown",
+                            "vehicles": []
+                          },
+                          "recommendation_status": "unknown",
+                          "recommendation_reasons": [
+                            "realtime_or_access_unavailable",
+                            "low_sample"
+                          ],
+                          "realtime_feasibility": {
+                            "reachability": "unknown",
+                            "boarding_status": "unknown",
+                            "reasons": [
+                              "arrival_unavailable"
+                            ],
+                            "access": {
+                              "seconds": 600,
+                              "destination_validated": true,
+                              "coverage": {
+                                "walking_included": true,
+                                "transfer_wait_included": null,
+                                "connections_included": null,
+                                "evidence": "synthetic_fixture",
+                                "captured_at": "2026-11-19T12:00:00+09:00"
+                              }
+                            },
+                            "vehicles": [],
+                            "evaluated_at": "2026-11-21T00:21:45.404504+09:00",
+                            "arrival_received_at": null,
+                            "locations_received_at": null,
+                            "provider_updated_at": null,
+                            "meaning": "reported_vehicles_if_depart_now_not_boarding_success_or_future_service_guarantee",
+                            "data_origin": ""
+                          }
+                        }
+                      ]
+                    }
+                  }
                 }
               }
             }
@@ -748,10 +972,341 @@
             "description": "공식 노선·정류장 매핑 미확인"
           },
           "503": {
-            "description": "서비스/공급자 미구성 또는 조회 실패"
+            "description": "journey_selection_store_unavailable: 저장소 장애 (만료 410과 구분)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "검색 결과가 만료/퇴출됐거나 존재하지 않음; 경로 재검색 필요"
+            "description": "journey_selection_expired: 선택 ID 없음 또는 10분 만료",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/journeys": {
+      "get": {
+        "tags": [
+          "경로 검색"
+        ],
+        "summary": "좌표 기반 경로 검색 및 대체 조회용 search_id 발급",
+        "description": "서버가 승인된 제공자와 캐시·PostgreSQL 호출 예산을 사용합니다. 현재 배포는 Live 비활성: 유효 요청도 routing_disabled 503. path_index와 leg_index는 제공자 원본 인덱스로 정렬 후 다시 번호를 붙이면 안 됩니다. search_id는 Bearer형 임시 식별자로 다른 사용자에게 공유하거나 로그에 남기지 마세요. 예시는 실제 저장 응답의 일부이며 현재 실호출 결과가 아닙니다.",
+        "parameters": [
+          {
+            "name": "start_lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            },
+            "description": "",
+            "example": 127.0519833
+          },
+          {
+            "name": "start_lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            },
+            "description": "",
+            "example": 37.2779667
+          },
+          {
+            "name": "end_lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            },
+            "description": "",
+            "example": 126.9727333
+          },
+          {
+            "name": "end_lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            },
+            "description": "",
+            "example": 37.55515
+          },
+          {
+            "name": "reference_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "과거 혼잡도 참고일. 현재 검색/GBIS 시각과 다름.",
+            "example": "2026-10-01"
+          },
+          {
+            "name": "analysis_set_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "",
+            "example": "da665031297012483299c96fc3292fa2638462f4b1ffb7059692e3e454159a91"
+          },
+          {
+            "name": "reference_tzon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "원본 혼잡도 시간코드",
+            "example": "07"
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "all/bus/subway/mixed/walk (제공자 지원에 따라 다름)",
+            "example": "all"
+          },
+          {
+            "name": "evaluation_model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "travel_time_only_v1 기본값, boarding_aware_v1 선택",
+            "example": "travel_time_only_v1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "경로 후보. search_id는 10분 내 대체 경로 조회에 사용. 예시는 8개 중 첫 경로만 발췌.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JourneySearchResponse"
+                },
+                "examples": {
+                  "recorded_excerpt": {
+                    "summary": "실제 저장된 ODsay 응답 발췌 — 실시간 아님",
+                    "value": {
+                      "data_origin": "odsay_recorded_response",
+                      "query": {
+                        "start": {
+                          "lon": 127.0519833,
+                          "lat": 37.2779667
+                        },
+                        "end": {
+                          "lon": 126.9727333,
+                          "lat": 37.55515
+                        },
+                        "mode": "all",
+                        "reference_date": "2026-10-01",
+                        "analysis_set_id": "da665031297012483299c96fc3292fa2638462f4b1ffb7059692e3e454159a91"
+                      },
+                      "policy": {
+                        "additional_delay": "not_computed",
+                        "boarding_failure_probability": "not_computed",
+                        "comparison_metrics": "transfers_and_walking_are_separate_not_weighted",
+                        "congestion_scoring": "not_used",
+                        "congestion_use": "historical_reference_only",
+                        "ranking": "provider_order_unchanged",
+                        "recommendation": "provider_total_minutes_ascending_competition_rank_v1",
+                        "recommendation_scope": "returned_candidates_only",
+                        "time_matching": "not_performed",
+                        "tzon_mapping_status": "unverified"
+                      },
+                      "search_id": "0123456789abcdef0123456789abcdef",
+                      "search_expires_at": "2026-11-21T00:30:00+09:00",
+                      "candidates": [
+                        {
+                          "path_index": 0,
+                          "provider_index": 0,
+                          "path_type": 2,
+                          "provider_total_minutes": 65,
+                          "recommendation_rank": 1,
+                          "legs": [
+                            {
+                              "leg_index": 0,
+                              "type": "walk",
+                              "duration_minutes": 1
+                            },
+                            {
+                              "leg_index": 1,
+                              "type": "bus",
+                              "duration_minutes": 63,
+                              "boarding": {
+                                "odsay_station_id": "80375",
+                                "local_station_id": "203000294",
+                                "provider_code": 2,
+                                "name": "소화초등학교",
+                                "ars_id": "04286",
+                                "lon": 127.052068,
+                                "lat": 37.277925
+                              },
+                              "alighting": {
+                                "odsay_station_id": "104664",
+                                "local_station_id": "101000006",
+                                "provider_code": 2,
+                                "name": "서울역버스환승센터(6번승강장)",
+                                "ars_id": "02006",
+                                "lon": 126.972796,
+                                "lat": 37.555441
+                              },
+                              "bus_options": [
+                                {
+                                  "congestion_status": "available",
+                                  "congestion_reason": "historical_observations_only",
+                                  "lane": {
+                                    "type": 14,
+                                    "busNo": "M5121",
+                                    "busID": "10730",
+                                    "busLocalBlID": "234001317",
+                                    "busProviderCode": 2
+                                  },
+                                  "m5121_candidate": true,
+                                  "mapping": {
+                                    "status": "reference_available",
+                                    "boarding_status": "matched_declared_gbis_local_id",
+                                    "alighting_status": "matched_declared_gbis_local_id",
+                                    "internal_route_id": 1,
+                                    "boarding_visit_id": 6,
+                                    "alighting_visit_id": 31,
+                                    "congestion_reference": {
+                                      "p50": 29,
+                                      "p75": 51,
+                                      "p90": 60.20000000000001,
+                                      "p95": 87.79999999999997,
+                                      "tzon": null,
+                                      "policy": {
+                                        "cgst_policy": "cgst-percent-v1",
+                                        "tzon_mapping_status": "unverified",
+                                        "historical_mapping_status": "unverified",
+                                        "cgst_interpretation_status": "hypothesis_unverified"
+                                      },
+                                      "status": "available",
+                                      "max_cgst": 96,
+                                      "min_cgst": 2,
+                                      "route_id": 1,
+                                      "mean_cgst": 34.38775510204081,
+                                      "stop_name": "소화초등학교",
+                                      "service_date": "2026-10-01",
+                                      "numeric_count": 49,
+                                      "route_stop_id": 6,
+                                      "stcis_stop_id": "4113774",
+                                      "stop_sequence": 6,
+                                      "mapping_status": "verified",
+                                      "analysis_set_id": "da665031297012483299c96fc3292fa2638462f4b1ffb7059692e3e454159a91",
+                                      "observation_count": 49
+                                    },
+                                    "notes": [
+                                      "reference_only_not_boarding_probability",
+                                      "boarding_permission_unverified",
+                                      "historical_mapping_status_unverified",
+                                      "ODsay_stationID_is_not_GBIS_stationId"
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "leg_index": 2,
+                              "type": "walk",
+                              "duration_minutes": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 좌표/일자/분석세트/옵션",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "분석세트 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "이동수단 미지원",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "호출 예산 소진",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "제공자 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "routing_disabled / routing_budget_state_unavailable / journey_selection_store_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "조회 시간 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1111,7 +1666,85 @@
             "type": "string"
           }
         }
+      },
+      "JourneySearchResponse": {
+        "type": "object",
+        "required": [
+          "search_id",
+          "search_expires_at",
+          "data_origin",
+          "candidates"
+        ],
+        "properties": {
+          "search_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "description": "서버 소유 원본 검색 결과 식별자. 유효기간 내 재시작 후 복원."
+          },
+          "search_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data_origin": {
+            "type": "string"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path_index",
+                "legs"
+              ],
+              "properties": {
+                "path_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "provider_total_minutes": {
+                  "type": "number"
+                },
+                "recommendation_rank": {
+                  "type": "integer"
+                },
+                "legs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "leg_index",
+                      "type",
+                      "duration_minutes"
+                    ],
+                    "properties": {
+                      "leg_index": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "walk",
+                          "bus",
+                          "subway"
+                        ]
+                      },
+                      "duration_minutes": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "경로 검색"
+    }
+  ]
 }

@@ -1,6 +1,7 @@
 package odsay
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -21,7 +22,16 @@ type selectionEntry struct {
 	Selection
 	expires time.Time
 }
+
+// SelectionStore persists only normalized server-owned paths, never credentials.
+type SelectionStore interface {
+	Put(context.Context, string, Selection, time.Time) error
+	Fetch(context.Context, string) (Selection, bool, error)
+	Recent(context.Context) ([]Selection, error)
+}
+
 type Selections struct {
+	store   SelectionStore
 	mu      sync.Mutex
 	entries map[string]selectionEntry
 	now     func() time.Time
@@ -30,7 +40,15 @@ type Selections struct {
 func NewSelections() *Selections {
 	return &Selections{entries: map[string]selectionEntry{}, now: time.Now}
 }
+func NewPersistentSelections(store SelectionStore) *Selections {
+	s := NewSelections()
+	s.store = store
+	return s
+}
 func (s *Selections) Save(raw Response, q Query, origin string, captured time.Time) (string, time.Time, error) {
+	return s.SaveContext(context.Background(), raw, q, origin, captured)
+}
+func (s *Selections) SaveContext(ctx context.Context, raw Response, q Query, origin string, captured time.Time) (string, time.Time, error) {
 	// Keep an independent immutable copy, not a provider cache's shared slices.
 	b, e := json.Marshal(raw)
 	if e != nil {
@@ -45,6 +63,15 @@ func (s *Selections) Save(raw Response, q Query, origin string, captured time.Ti
 		return "", time.Time{}, e
 	}
 	id := hex.EncodeToString(nonce)
+	if s.store != nil {
+		expires := s.now().Add(10 * time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		if e := s.store.Put(ctx, id, Selection{copy, q, origin, captured}, expires); e != nil {
+			return "", time.Time{}, ErrSelectionStore
+		}
+		return id, expires, nil
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := s.now()
@@ -69,20 +96,39 @@ func (s *Selections) Save(raw Response, q Query, origin string, captured time.Ti
 	return id, expires, nil
 }
 func (s *Selections) Get(id string) (Selection, bool) {
+	value, found, _ := s.GetContext(context.Background(), id)
+	return value, found
+}
+func (s *Selections) GetContext(ctx context.Context, id string) (Selection, bool, error) {
 	if s == nil {
-		return Selection{}, false
+		return Selection{}, false, nil
+	}
+	if s.store != nil {
+		if len(id) != 32 {
+			return Selection{}, false, nil
+		}
+		if _, e := hex.DecodeString(id); e != nil {
+			return Selection{}, false, nil
+		}
+		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		value, found, e := s.store.Fetch(ctx, id)
+		if e != nil {
+			return Selection{}, false, ErrSelectionStore
+		}
+		return value, found, nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	v, ok := s.entries[id]
 	if !ok {
-		return Selection{}, false
+		return Selection{}, false, nil
 	}
 	if !s.now().Before(v.expires) {
 		delete(s.entries, id)
-		return Selection{}, false
+		return Selection{}, false, nil
 	}
-	return v.Selection, true
+	return v.Selection, true, nil
 }
 
 // Snapshots exposes only recent server-owned responses for exact section reuse.
@@ -90,6 +136,15 @@ func (s *Selections) Get(id string) (Selection, bool) {
 func (s *Selections) Snapshots() []Selection {
 	if s == nil {
 		return nil
+	}
+	if s.store != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		out, e := s.store.Recent(ctx)
+		if e != nil {
+			return nil
+		}
+		return out
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
