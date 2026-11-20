@@ -93,6 +93,10 @@ func WithAuth(base http.Handler, s *auth.Service) http.Handler {
 			return
 		}
 		switch {
+		case errors.Is(e, auth.ErrKakaoUnavailable):
+			failure(w, 503, "kakao_login_unavailable", "카카오 인증 설정 또는 일시적인 연결 상태를 확인해 주세요.")
+		case errors.Is(e, auth.ErrConsentRequired):
+			failure(w, 400, "consent_required", "최초 가입에는 이용약관과 개인정보 수집·이용 동의가 필요합니다.")
 		case errors.Is(e, auth.ErrInvalid):
 			failure(w, 400, "invalid_input", "이메일·비밀번호·닉네임과 필수 약관을 확인해 주세요.")
 		case errors.Is(e, auth.ErrCredentials):
@@ -145,6 +149,18 @@ func WithAuth(base http.Handler, s *auth.Service) http.Handler {
 		}
 		v, e := s.Login(r.Context(), in)
 		result(w, 200, v, e)
+	}))
+	mux.HandleFunc("POST /api/v1/auth/kakao", wrap(func(w http.ResponseWriter, r *http.Request) {
+		if !limiter.allow("kakao-login:"+ip(r), 20) {
+			limited(w)
+			return
+		}
+		var in auth.KakaoLogin
+		if !decode(w, r, &in) {
+			return
+		}
+		session, e := s.KakaoLogin(r.Context(), in)
+		result(w, 200, session, e)
 	}))
 	mux.HandleFunc("POST /api/v1/auth/refresh", wrap(func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.allow("refresh:"+ip(r), 60) {

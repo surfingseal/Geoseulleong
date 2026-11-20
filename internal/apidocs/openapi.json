@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Geoseulleong API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "경로 검색 → search_id/path_index/leg_index → 대체 승차 경로 조회. Live는 별도 승인·예산·제공자 접근 조건 충족 후 활성화합니다. 저장 응답 예시는 오프라인 기록이며 현재 경로/ETA가 아닙니다. 선택 ID는 생성 후 10분 동안 PostgreSQL에 보존되어 재시작 후에도 조회됩니다. CGST는 과거 참고 지표이며 탑승 성공 확률이 아닙니다."
   },
   "servers": [
@@ -1310,6 +1310,117 @@
           }
         }
       }
+    },
+    "/api/v1/auth/kakao": {
+      "post": {
+        "tags": [
+          "인증"
+        ],
+        "summary": "Android 카카오 SDK 토큰으로 Geoseulleong 로그인",
+        "description": "카카오 토큰 정보 API로 유효기간·app_id를 확인한 뒤 사용자 정보 API의 id와 비교합니다. provider+kakao user ID로만 조회하며 이메일로 계정을 병합하지 않습니다. 신규 계정은 이메일·로컬 비밀번호 없이 생성하고 필수 약관 동의를 기록합니다. 응답 토큰은 Geoseulleong JWT/Refresh Token이며 기존 refresh/logout/users/me에 그대로 사용합니다. 아래 요청·응답은 합성 예시이며 실제 SDK 토큰을 준비한 후 호출하세요. 카카오 토큰·Geoseulleong 토큰을 URL이나 로그에 남기지 마세요.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KakaoLogin"
+              },
+              "examples": {
+                "first_login": {
+                  "summary": "최초 로그인 (실제 SDK 토큰으로 교체)",
+                  "value": {
+                    "access_token": "ANDROID_KAKAO_SDK_ACCESS_TOKEN",
+                    "terms_agreed": true,
+                    "privacy_agreed": true
+                  }
+                },
+                "returning_login": {
+                  "summary": "이미 가입한 카카오 사용자",
+                  "value": {
+                    "access_token": "ANDROID_KAKAO_SDK_ACCESS_TOKEN"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "기존 로그인과 같은 Session. 카카오 토큰은 응답하지 않음.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                },
+                "example": {
+                  "user": {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "email": "",
+                    "nickname": "카카오_0123456789abcdef",
+                    "status": "active",
+                    "created_at": "2026-11-21T01:00:00+09:00"
+                  },
+                  "access_token": "GEOSEULLEONG_JWT_ACCESS_TOKEN",
+                  "refresh_token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                  "token_type": "Bearer",
+                  "expires_in": 900,
+                  "refresh_expires_in": 2592000
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input / consent_required (최초 가입 시 약관 미동의)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized: 만료·잘못된 토큰·다른 앱·사용자 ID 불일치·비활성 사용자",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited: IP별 5분간 최대 20회",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error: 저장 실패, 트랜잭션 롤백",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "kakao_login_unavailable: 앱 ID 미설정 또는 카카오 일시 오류/접근 권한 문제",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1337,7 +1448,7 @@
           },
           "email": {
             "type": "string",
-            "format": "email"
+            "description": "일반 가입은 정규화된 이메일. 이메일을 수집하지 않는 카카오 전용 계정은 기존 string DTO 호환을 위해 빈 문자열을 반환."
           },
           "nickname": {
             "type": "string",
@@ -1737,6 +1848,32 @@
                 }
               }
             }
+          }
+        }
+      },
+      "KakaoLogin": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "access_token"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "writeOnly": true,
+            "description": "동일 카카오 앱의 Android SDK가 발급한 Access Token. Geoseulleong JWT나 앱 키가 아님. DB/로그에 저장하지 않음."
+          },
+          "terms_agreed": {
+            "type": "boolean",
+            "default": false,
+            "description": "최초 가입 시 필수. 기존 가입자는 생략 가능."
+          },
+          "privacy_agreed": {
+            "type": "boolean",
+            "default": false,
+            "description": "최초 가입 시 필수. 기존 가입자는 생략 가능."
           }
         }
       }

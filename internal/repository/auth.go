@@ -40,7 +40,7 @@ func (a *Auth) Create(ctx context.Context, u auth.Account, key, terms, privacy s
 }
 func (a *Auth) Find(ctx context.Context, email string) (auth.Account, error) {
 	var u auth.Account
-	e := a.pool.QueryRow(ctx, `SELECT user_id::text,email,password_hash,nickname,status,created_at FROM users WHERE email=$1`, email).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Nickname, &u.Status, &u.CreatedAt)
+	e := a.pool.QueryRow(ctx, `SELECT user_id::text,email,password_hash,nickname,status,created_at FROM users WHERE email=$1 AND password_hash IS NOT NULL`, email).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Nickname, &u.Status, &u.CreatedAt)
 	if errors.Is(e, pgx.ErrNoRows) {
 		e = auth.ErrCredentials
 	}
@@ -87,7 +87,7 @@ func (a *Auth) Rotate(ctx context.Context, hash []byte, next auth.Token, now tim
 	var old string
 	var expiry time.Time
 	var revoked *time.Time
-	e = tx.QueryRow(ctx, `SELECT t.token_id::text,t.expires_at,t.revoked_at,u.user_id::text,u.email,u.nickname,u.status,u.created_at FROM refresh_tokens t JOIN users u USING(user_id) WHERE t.token_hash=$1 FOR UPDATE OF t`, hash).Scan(&old, &expiry, &revoked, &u.ID, &u.Email, &u.Nickname, &u.Status, &u.CreatedAt)
+	e = tx.QueryRow(ctx, `SELECT t.token_id::text,t.expires_at,t.revoked_at,u.user_id::text,coalesce(u.email,''),u.nickname,u.status,u.created_at FROM refresh_tokens t JOIN users u USING(user_id) WHERE t.token_hash=$1 FOR UPDATE OF t`, hash).Scan(&old, &expiry, &revoked, &u.ID, &u.Email, &u.Nickname, &u.Status, &u.CreatedAt)
 	if e != nil {
 		return u, expiry, e
 	}
@@ -132,7 +132,7 @@ func (a *Auth) Logout(ctx context.Context, hash []byte, now time.Time) error {
 }
 func (a *Auth) Current(ctx context.Context, uid, sid string, now time.Time) (auth.User, error) {
 	var u auth.User
-	e := a.pool.QueryRow(ctx, `SELECT u.user_id::text,u.email,u.nickname,u.status,u.created_at FROM users u JOIN refresh_tokens t USING(user_id) WHERE u.user_id::text=$1 AND t.token_id::text=$2 AND u.status='active' AND t.revoked_at IS NULL AND t.expires_at>$3`, uid, sid, now).Scan(&u.ID, &u.Email, &u.Nickname, &u.Status, &u.CreatedAt)
+	e := a.pool.QueryRow(ctx, `SELECT u.user_id::text,coalesce(u.email,''),u.nickname,u.status,u.created_at FROM users u JOIN refresh_tokens t USING(user_id) WHERE u.user_id::text=$1 AND t.token_id::text=$2 AND u.status='active' AND t.revoked_at IS NULL AND t.expires_at>$3`, uid, sid, now).Scan(&u.ID, &u.Email, &u.Nickname, &u.Status, &u.CreatedAt)
 	if errors.Is(e, pgx.ErrNoRows) {
 		e = auth.ErrCredentials
 	}

@@ -59,3 +59,16 @@ go build ./...
 현재 Live 활성화 승인과 추가 누적 예산이 없으므로 `JOURNEY_SEARCH_MODE=disabled`, ODsay/Kakao/GBIS 승인 플래그 false를 유지합니다. 공식 ID 검증이 가능한 ODsay를 활성화하려면 별도 승인 후 `JOURNEY_PROVIDER=odsay`, `JOURNEY_SEARCH_MODE=live`, `ODSAY_LIVE_APPROVED=true`, 남은 일일·누적 예산, 접근 IP를 설정합니다. `API_BUDGET_BACKEND=postgres`와 기존 ledger를 유지해야 하며 카운터 초기화는 금지합니다. 이때 ODsay 접근/광역버스 구간 조회는 같은 클라이언트·예산·캐시를 공유합니다. Kakao도 기존 provider 설정을 지원하지만 공식 정류장 ID가 없으면 대체 승차 확정 매핑을 거부합니다. GBIS는 별도의 승인·예산으로만 활성화합니다.
 
 Swagger `/swagger/`의 경로 검색과 대체 경로 요청·응답 예시를 사용하세요. `reference_date`/`service_date`는 과거 통계 참고일이며 현재 GBIS 값과 구분합니다. 전체 시간은 확보한 구간만 합산하고 누락 시 null, ETA·좌석 미제공도 unknown/null로 남깁니다.
+
+
+## 카카오 로그인
+
+`POST /api/v1/auth/kakao`에 Android SDK의 `access_token`을 전달합니다. 최초 가입에는 `terms_agreed=true`, `privacy_agreed=true`가 필요하고, 재로그인은 토큰만 전달합니다. 토큰 정보의 app_id·만료 및 사용자 정보의 id를 검증한 뒤 기존 Geoseulleong Session을 발급합니다. 카카오 토큰은 저장하거나 로그에 출력하지 않습니다.
+
+서버 환경변수: `KAKAO_LOGIN_APP_ID=1652139` (숫자 앱 ID). 이 방식의 서버 검증에는 REST/native/admin 키가 필요하지 않습니다. 기존 `KAKAO_REST_API_KEY`는 경로 제공자용이며 로그인 검증에 사용하지 않습니다. 앱 ID 미설정 시 새 API만 503이고 기존 로그인은 유지합니다.
+
+DB 백업 후 `migrations/009_kakao_login.sql`을 적용합니다. users의 email/password_hash를 nullable로 변경하고 `oauth_identities(provider,provider_user_id,user_id)`를 추가합니다. 기존 이메일 UNIQUE 및 일반 가입 비밀번호 검증은 유지합니다. OAuth 계정은 users.email=NULL, password_hash=NULL이며 응답 email은 기존 string 계약에 맞춰 빈 문자열입니다. 이메일 자동 연결과 로컬 비밀번호 자동 생성은 하지 않습니다. 사용자·provider 연결·동의·Refresh Token 생성은 하나의 트랜잭션으로 처리합니다.
+
+카카오 디벨로퍼스에서 로그인 사용을 활성화하고 Android의 실제 applicationId(첨부 화면: com.example.salmon)와 디버그/릴리스 키 해시를 같은 앱에 등록해야 합니다. Android SDK는 해당 앱의 네이티브 앱 키를 사용합니다. 스토어 URL은 배포 상태에 맞게 설정하며 백엔드는 인가코드를 교환하지 않으므로 OAuth callback 엔드포인트를 추가하지 않습니다. 이메일은 필수 동의항목이 아닙니다. SDK 설정과 테스트 계정 준비 후 실제 토큰으로 통합 확인해야 합니다.
+
+공식 명세: https://developers.kakao.com/docs/ko/kakaologin/rest-api (access_token_info, v2/user/me). 현재 구현 테스트는 mock이며 실제 카카오 계정 로그인은 수행하지 않습니다. Swagger `/swagger/`에 최초/재로그인 요청과 동일 Session 응답을 제공합니다.

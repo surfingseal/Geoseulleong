@@ -75,6 +75,7 @@ type Store interface {
 	Current(context.Context, string, string, time.Time) (User, error)
 }
 type Config struct {
+	Kakao                        KakaoVerifier
 	Secret                       []byte
 	TermsVersion, PrivacyVersion string
 	Cost                         int

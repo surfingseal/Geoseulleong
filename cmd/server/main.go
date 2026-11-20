@@ -145,7 +145,18 @@ func run() error {
 			return err
 		}
 		defer authPool.Close()
-		authService, err = auth.New(repository.NewAuth(authPool), auth.Config{Secret: secret, TermsVersion: os.Getenv("AUTH_TERMS_VERSION"), PrivacyVersion: os.Getenv("AUTH_PRIVACY_VERSION")})
+		var kakaoLogin auth.KakaoVerifier
+		if value := os.Getenv("KAKAO_LOGIN_APP_ID"); value != "" {
+			id, e := strconv.ParseInt(value, 10, 64)
+			if e != nil {
+				return errors.New("Kakao login app ID invalid")
+			}
+			kakaoLogin, e = auth.NewKakaoClient(id)
+			if e != nil {
+				return errors.New("Kakao login configuration invalid")
+			}
+		}
+		authService, err = auth.New(repository.NewAuth(authPool), auth.Config{Kakao: kakaoLogin, Secret: secret, TermsVersion: os.Getenv("AUTH_TERMS_VERSION"), PrivacyVersion: os.Getenv("AUTH_PRIVACY_VERSION")})
 		if err != nil {
 			return err
 		}
