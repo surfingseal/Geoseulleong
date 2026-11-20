@@ -1,0 +1,16 @@
+{
+  "travel_weight": 1,
+  "risk_weight": 40,
+  "mean_weight": 0.4,
+  "p90_weight": 0.6,
+  "history_weight": 0.35,
+  "seat_weight": 0.65,
+  "cgst_scale": 100,
+  "seat_scale": 5,
+  "sample_scale": 30,
+  "holidays": [
+    "2026-10-03",
+    "2026-10-05",
+    "2026-10-09"
+  ]
+}

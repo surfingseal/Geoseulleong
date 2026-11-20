@@ -1,0 +1,1117 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Geoseulleong 인증 API",
+    "version": "1.0.0",
+    "description": "개발용 인증 API. 예제 비밀번호는 합성 값입니다. 기존 경로/혼잡도 API는 변경하지 않습니다. 토큰 회전 직후 이전 Access Token도 폐기됩니다."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/signup": {
+      "post": {
+        "tags": [
+          "인증"
+        ],
+        "summary": "회원가입",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Signup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "잘못되거나 만료된 인증",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이메일/닉네임 중복",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한; Retry-After: 300초",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "인증 비활성화",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "인증"
+        ],
+        "summary": "로그인",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "잘못되거나 만료된 인증",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이메일/닉네임 중복",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한; Retry-After: 300초",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "인증 비활성화",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "인증"
+        ],
+        "summary": "토큰 회전",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refresh"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "잘못되거나 만료된 인증",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이메일/닉네임 중복",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한; Retry-After: 300초",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "인증 비활성화",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "인증"
+        ],
+        "summary": "로그아웃",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refresh"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "세션 전체 폐기 완료"
+          },
+          "400": {
+            "description": "입력 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "잘못되거나 만료된 인증",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이메일/닉네임 중복",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한; Retry-After: 300초",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "인증 비활성화",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": [
+          "사용자"
+        ],
+        "summary": "내 정보",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "로그인 사용자",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer 인증 필요 또는 토큰 폐기",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "인증 비활성화",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/journeys/boarding-recommendations": {
+      "get": {
+        "tags": [
+          "대체 승차 경로"
+        ],
+        "summary": "낮은 CGST 후보·접근 경로·실시간 도착 가능성 비교",
+        "description": "기존 journeys의 search_id 및 provider path_index/leg_index로 실제 검색 결과 또는 기록 경로를 선택합니다. 추가 원래 경로 검색 없이 후보 최대3개의 접근·GBIS·CGST를 연결합니다. 미확인 값은 null/unknown입니다. 누락 구간은 기존 승인·예산 내 ODsay 클라이언트로 조회해 일치하는 버스 구간 시간만 합산합니다. 추가 구간 최대3회, 접근 포함 검색 상한6회.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "query",
+            "required": false,
+            "description": "journeys 응답의 32자리 ID. 실제 검색 모드 필수. 기록 모드는 기존 생략 호출 유지.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "name": "path_index",
+            "in": "query",
+            "required": false,
+            "description": "journeys 응답의 path_index / provider_index 값. 추천 순위가 아님.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "leg_index",
+            "in": "query",
+            "required": false,
+            "description": "선택한 광역버스 구간 순번. 기록 예제=1.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "service_date",
+            "in": "query",
+            "required": true,
+            "description": "CGST 비교 기준 날짜, YYYY-MM-DD",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-10-02"
+            }
+          },
+          {
+            "name": "tzon",
+            "in": "query",
+            "required": true,
+            "description": "원본 시간대 코드 두 자리",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{2}$",
+              "example": "08"
+            }
+          },
+          {
+            "name": "window",
+            "in": "query",
+            "required": false,
+            "description": "방문 순번 탐색 범위, 1~20, 기본10",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          },
+          {
+            "name": "origin_lon",
+            "in": "query",
+            "required": false,
+            "description": "접근 검색 출발 경도. origin_lat와 함께 입력",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "origin_lat",
+            "in": "query",
+            "required": false,
+            "description": "접근 검색 출발 위도. origin_lon과 함께 입력",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "후보와 비교 결과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "original_journey": {
+                      "type": "object"
+                    },
+                    "candidates": {
+                      "type": "array",
+                      "maxItems": 3,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "recommendation_status": {
+                            "type": "string",
+                            "enum": [
+                              "recommended",
+                              "unreachable",
+                              "excluded",
+                              "unknown"
+                            ]
+                          },
+                          "recommendation_rank": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "comparison": {
+                            "type": "object"
+                          },
+                          "itinerary": {
+                            "$ref": "#/components/schemas/AlternativeItinerary"
+                          },
+                          "express_segment": {
+                            "$ref": "#/components/schemas/AlternativeExpressSegment"
+                          }
+                        }
+                      }
+                    },
+                    "original_itinerary": {
+                      "$ref": "#/components/schemas/AlternativeItinerary"
+                    }
+                  }
+                },
+                "example": {
+                  "original_profile": {
+                    "status": "available",
+                    "mean_cgst": 60.333333333333336,
+                    "p90_cgst": 67.6,
+                    "observation_count": 3,
+                    "numeric_count": 3,
+                    "low_sample": true
+                  },
+                  "original_journey": {
+                    "data_origin": "odsay_recorded_response",
+                    "reference_only": true,
+                    "duration_minutes": 65,
+                    "transfers": 0,
+                    "walking_minutes": 2,
+                    "access": {
+                      "provider_index": 0,
+                      "duration_minutes": 1,
+                      "transfers": 0,
+                      "walking_minutes": 1,
+                      "final_walk_minutes": 1,
+                      "destination_status": "prefix_endpoint_unverified"
+                    },
+                    "congestion": {
+                      "status": "available",
+                      "mean_cgst": 60.333333333333336,
+                      "p90_cgst": 67.6,
+                      "observation_count": 3,
+                      "numeric_count": 3,
+                      "low_sample": true
+                    }
+                  },
+                  "candidates": [
+                    {
+                      "visit": {
+                        "visit_id": 1,
+                        "sequence": 1,
+                        "turn_sequence": 31,
+                        "gbis_stop_id": "203000023",
+                        "original_name": "삼성전자중앙문",
+                        "via_name": false,
+                        "boarding_allowed": null,
+                        "point": {
+                          "lon": 127.0486667,
+                          "lat": 37.2593833
+                        },
+                        "crs_status": "hypothesis_validated",
+                        "mapping_count": 1,
+                        "stcis_stop_id": "4160311",
+                        "stcis_sequence": 0
+                      },
+                      "profile": {
+                        "status": "available",
+                        "mean_cgst": 11,
+                        "p90_cgst": 19.400000000000002,
+                        "observation_count": 3,
+                        "numeric_count": 3,
+                        "low_sample": true
+                      },
+                      "recommendation_status": "unknown",
+                      "comparison": {
+                        "access": {
+                          "provider_index": 0,
+                          "duration_minutes": 10,
+                          "transfers": 0,
+                          "walking_minutes": 0,
+                          "final_walk_minutes": 0,
+                          "destination_status": "stop_id_and_coordinates_match"
+                        },
+                        "access_minutes_difference": 9,
+                        "access_transfer_difference": 0,
+                        "access_walking_minutes_difference": -1,
+                        "mean_cgst_difference": -49.333333333333336,
+                        "p90_cgst_difference": -48.19999999999999,
+                        "total_journey_minutes": null,
+                        "total_journey_status": "onward_segment_not_queried",
+                        "reachability": "unknown",
+                        "boarding_status": "unknown"
+                      }
+                    },
+                    {
+                      "visit": {
+                        "visit_id": 3,
+                        "sequence": 3,
+                        "turn_sequence": 31,
+                        "gbis_stop_id": "203000116",
+                        "original_name": "금성아파트.한국2차아파트",
+                        "via_name": false,
+                        "boarding_allowed": null,
+                        "point": {
+                          "lon": 127.05625,
+                          "lat": 37.26735
+                        },
+                        "crs_status": "hypothesis_validated",
+                        "mapping_count": 1,
+                        "stcis_stop_id": "4116866",
+                        "stcis_sequence": 2
+                      },
+                      "profile": {
+                        "status": "available",
+                        "mean_cgst": 32,
+                        "p90_cgst": 48.2,
+                        "observation_count": 3,
+                        "numeric_count": 3,
+                        "low_sample": true
+                      },
+                      "recommendation_status": "unknown",
+                      "comparison": {
+                        "access": {
+                          "provider_index": 0,
+                          "duration_minutes": 21,
+                          "transfers": 1,
+                          "walking_minutes": 4,
+                          "final_walk_minutes": 4,
+                          "destination_status": "stop_id_and_coordinates_match"
+                        },
+                        "access_minutes_difference": 20,
+                        "access_transfer_difference": 1,
+                        "access_walking_minutes_difference": 3,
+                        "mean_cgst_difference": -28.333333333333336,
+                        "p90_cgst_difference": -19.39999999999999,
+                        "total_journey_minutes": null,
+                        "total_journey_status": "onward_segment_not_queried",
+                        "reachability": "unknown",
+                        "boarding_status": "unknown"
+                      }
+                    },
+                    {
+                      "visit": {
+                        "visit_id": 4,
+                        "sequence": 4,
+                        "turn_sequence": 31,
+                        "gbis_stop_id": "203000071",
+                        "original_name": "광교호수공원입구.원천교사거리",
+                        "via_name": false,
+                        "boarding_allowed": null,
+                        "point": {
+                          "lon": 127.0596,
+                          "lat": 37.2709333
+                        },
+                        "crs_status": "hypothesis_validated",
+                        "mapping_count": 1,
+                        "stcis_stop_id": "4116889",
+                        "stcis_sequence": 3
+                      },
+                      "profile": {
+                        "status": "available",
+                        "mean_cgst": 54.75,
+                        "p90_cgst": 71.9,
+                        "observation_count": 4,
+                        "numeric_count": 4,
+                        "low_sample": true
+                      },
+                      "recommendation_status": "unknown",
+                      "comparison": {
+                        "access": {
+                          "provider_index": 0,
+                          "duration_minutes": 10,
+                          "transfers": 0,
+                          "walking_minutes": 0,
+                          "final_walk_minutes": 0,
+                          "destination_status": "stop_id_and_coordinates_match"
+                        },
+                        "access_minutes_difference": 9,
+                        "access_transfer_difference": 0,
+                        "access_walking_minutes_difference": -1,
+                        "mean_cgst_difference": -5.583333333333336,
+                        "p90_cgst_difference": 4.300000000000011,
+                        "total_journey_minutes": null,
+                        "total_journey_status": "onward_segment_not_queried",
+                        "reachability": "unknown",
+                        "boarding_status": "unknown"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 날짜·시간대·좌표·인덱스"
+          },
+          "422": {
+            "description": "공식 노선·정류장 매핑 미확인"
+          },
+          "503": {
+            "description": "서비스/공급자 미구성 또는 조회 실패"
+          },
+          "410": {
+            "description": "검색 결과가 만료/퇴출됐거나 존재하지 않음; 경로 재검색 필요"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Signup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "password",
+          "password_confirm",
+          "nickname",
+          "terms_agreed",
+          "privacy_agreed"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "앞뒤 공백 제거, ASCII 소문자로 정규화. 표시 이름 없는 이메일."
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 20,
+            "writeOnly": true,
+            "description": "영문·숫자·ASCII 특수문자 각각 1개 이상, 공백/제어 문자 금지, UTF-8 72바이트 이하."
+          },
+          "password_confirm": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "description": "password와 일치"
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20,
+            "description": "공백·제어·보이지 않는 형식 문자 금지. NFC 및 대소문자 무시 중복 검사."
+          },
+          "terms_agreed": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "privacy_agreed": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "example": {
+          "email": "student@example.com",
+          "password": "Example9!Only",
+          "password_confirm": "Example9!Only",
+          "nickname": "거슬렁학생",
+          "terms_agreed": true,
+          "privacy_agreed": true
+        }
+      },
+      "Login": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true
+          }
+        },
+        "example": {
+          "email": "student@example.com",
+          "password": "Example9!Only"
+        }
+      },
+      "Refresh": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 43,
+            "writeOnly": true,
+            "description": "서버가 발급한 opaque 토큰. Android 보안 저장소에 보관."
+          }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "required": [
+          "user",
+          "access_token",
+          "refresh_token",
+          "token_type",
+          "expires_in",
+          "refresh_expires_in"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "access_token": {
+            "type": "string",
+            "description": "15분 JWT; 이 문서에는 실제 토큰을 포함하지 않음"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "회전형 30일 세션, 원문은 DB 미저장"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expires_in": {
+            "type": "integer",
+            "example": 900
+          },
+          "refresh_expires_in": {
+            "type": "integer",
+            "example": 2592000
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "AlternativeItinerary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "partial",
+              "reference_only"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total_journey_minutes": {
+            "type": "number",
+            "nullable": true
+          },
+          "known_minutes": {
+            "type": "number"
+          },
+          "walking_minutes": {
+            "type": "number",
+            "nullable": true
+          },
+          "transfer_count": {
+            "type": "integer",
+            "nullable": true
+          },
+          "time_basis": {
+            "type": "string"
+          },
+          "express_wait_minutes": {
+            "type": "number",
+            "nullable": true
+          },
+          "reachability": {
+            "type": "string",
+            "enum": [
+              "reachable",
+              "unreachable",
+              "unknown"
+            ]
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "access",
+                    "express",
+                    "onward"
+                  ]
+                },
+                "duration_minutes": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "known_minutes": {
+                  "type": "number"
+                },
+                "legs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "object"
+                      },
+                      "to": {
+                        "type": "object"
+                      },
+                      "mode": {
+                        "type": "string"
+                      },
+                      "duration_minutes": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "same_vehicle_continuation": {
+                        "type": "boolean"
+                      },
+                      "data_origin": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "vehicles": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "realtime_reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "includes_express_wait": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "AlternativeExpressSegment": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable"
+            ]
+          },
+          "reason_code": {
+            "type": "string"
+          },
+          "gbis_route_id": {
+            "type": "string"
+          },
+          "boarding_gbis_stop_id": {
+            "type": "string"
+          },
+          "alighting_gbis_stop_id": {
+            "type": "string"
+          },
+          "duration_minutes": {
+            "type": "number",
+            "nullable": true
+          },
+          "data_origin": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

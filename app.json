@@ -1,0 +1,13 @@
+{
+  "name": "Geoseulleong",
+  "description": "Go transit routing backend; live external APIs disabled by default",
+  "buildpacks": [{"url": "heroku/go"}],
+  "env": {
+    "GOVERSION": {"value": "go1.27"},
+    "GO_INSTALL_PACKAGE_SPEC": {"value": "./cmd/server"},
+    "JOURNEY_SEARCH_MODE": {"value": "disabled"},
+    "BOARDING_REALTIME_ENABLED": {"value": "false"},
+    "ALTERNATIVE_GBIS_ENABLED": {"value": "false"},
+    "AUTH_ENABLED": {"value": "false"}
+  }
+}

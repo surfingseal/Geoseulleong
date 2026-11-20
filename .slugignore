@@ -1,0 +1,10 @@
+/results/
+/data/
+/var/
+/backups/
+.env*
+!/.env.example
+/m5121_*.json
+/**/*_test.go
+/**/testdata/
+/.git/

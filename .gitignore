@@ -1,0 +1,31 @@
+.env
+.env.*
+!.env.example
+/results/
+/bin/
+.DS_Store
+
+# Local observation files
+/data/
+
+# Local credentials, backups, and disposable PostgreSQL clusters
+*.dump
+*.backup
+*.sql.gz
+*.pem
+*.key
+.pgpass
+.pg_service.conf
+/tmp/
+/pgdata/
+/.postgres/
+/.vscode/
+/.idea/
+
+# Persistent local ODsay budget ledger; never delete to reset quota.
+/var/odsay-budget/
+
+# Deployment excludes local ledgers, raw captures and database backups.
+/var/
+/backups/
+/m5121_*.json
